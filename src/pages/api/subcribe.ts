@@ -5,6 +5,7 @@ import { fauna } from "../../servicer/fauna";
 import { stripe } from "../../servicer/stripe";
 
 
+
 type user = {
     ref:{
         id:string
@@ -14,7 +15,7 @@ type user = {
 export default async (req:NextApiRequest,res:NextApiResponse) => {
     if(req.method === 'POST'){
        const session = await getSession({ req });
-
+       console.log();
        const users = await fauna.query<user>(
            q.Get(
                q.Match(
@@ -23,7 +24,8 @@ export default async (req:NextApiRequest,res:NextApiResponse) => {
                )
            )
        )
-
+      
+       
        const stripeCustomer= await stripe.customers.create({
          email: session.user.email,
        })
