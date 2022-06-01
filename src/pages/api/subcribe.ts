@@ -4,11 +4,12 @@ import { getSession } from "next-auth/client";
 import { fauna } from "../../servicer/fauna";
 import { stripe } from "../../servicer/stripe";
 
-
-
-type user = {
+type User = {
     ref:{
         id:string
+    }
+    data:{
+        stripe_customer_id:string
     }
 }
 
@@ -16,7 +17,7 @@ export default async (req:NextApiRequest,res:NextApiResponse) => {
     if(req.method === 'POST'){
        const session = await getSession({ req });
        console.log();
-       const users = await fauna.query<user>(
+       const users = await fauna.query<User>(
            q.Get(
                q.Match(
                    q.Index('users_by_email'),
@@ -24,25 +25,32 @@ export default async (req:NextApiRequest,res:NextApiResponse) => {
                )
            )
        )
+       let customerid = users.data.stripe_customer_id
+
+       if (!customerid) {
+        const stripeCustomer= await stripe.customers.create({
+            email: session.user.email,
+          })
+          
+          await fauna.query(
+            q.Update(
+                q.Ref(q.Collection('users'), users.ref.id),
+                {
+                    data:{
+                        stripe_Customer_id:stripeCustomer.id,
+                    }
+                }
+            )
+        )
+        
+        customerid = stripeCustomer.id
+       }
       
        
-       const stripeCustomer= await stripe.customers.create({
-         email: session.user.email,
-       })
-
-       await fauna.query(
-           q.Update(
-               q.Ref(q.Collection('users'), users.ref.id),
-               {
-                   data:{
-                       stripe_Customer_id:stripeCustomer.id,
-                   }
-               }
-           )
-       )
-
+      
+       
        const stripeCheckoutSession = await stripe.checkout.sessions.create({
-            customer:stripeCustomer.id,
+            customer:customerid,
             payment_method_types:['card'],
             billing_address_collection: 'required',
             line_items:[

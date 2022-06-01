@@ -29,7 +29,7 @@ export default NextAuth({
            ),
             q.Create(
               q.Collection('users'),
-              {data: email } 
+              {data: {email} } 
             ),
             q.Get(q.Match(
               q.Index('users_by_email'),
