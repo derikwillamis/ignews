@@ -5,6 +5,7 @@ import  styles from './styles.module.scss'
 import Prismic from '@prismicio/client'
 import { RichText } from 'prismic-dom';
 import { Year } from 'faunadb';
+import Link from 'next/link';
 
 type post = {
     slug:string;
@@ -27,11 +28,13 @@ export default function Posts( {posts}: postsprops ) {
       <main className={styles.container}>
           <div className={styles.posts}>
               { posts.map(post => (
-                  <a key={post.slug} href="#">
+                <Link href={'/posts/${post.slug}'}>
+                  <a key={post.slug}>
                   <time>{post.updatedAt}</time>
                   <strong>{post.title}</strong>
                   <p>{post.excerpt}</p>
               </a>
+              </Link>
               ) )}
           </div>
       </main>
@@ -48,13 +51,13 @@ export const  getStaticProps:GetStaticProps = async () => {
          fetch: ['publication.title', 'publication.content'],
          pageSize:100,
      })
-     console.log(response)
+    
     
      const posts =response.results.map(post => {
          return{
              slug:post.uid,
              title:RichText.asText(post.data.title),
-             excerpt:post.data.content.fimd(content => content.type === 'paragraph')?.text ?? '',
+             excerpt:post.data.content.find(content => content.type === 'paragraph')?.text ?? '',
              updatedAt:new Date(post.last_publication_date).toLocaleDateString('pt-br',{
                  day: '2-digit',
                  month:'long',
